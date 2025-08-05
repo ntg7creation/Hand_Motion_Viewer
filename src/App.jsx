@@ -8,9 +8,35 @@ import * as THREE from "three";
 
 // Load .jsonl and return array of parsed lines
 async function loadJSONL(path) {
-  const text = await fetch(path).then((res) => res.text());
-  return text.trim().split("\n").map((line) => JSON.parse(line));
+  console.log("[loadJSONL] Loading:", path);
+  const res = await fetch(path);
+  const text = await res.text();
+
+  if (res.status !== 200) {
+    console.error(`[loadJSONL] Failed to load ${path}, status:`, res.status);
+  }
+
+  if (text.trim().startsWith("<!DOCTYPE")) {
+    console.error(`[loadJSONL] Got HTML instead of JSONL at ${path}`);
+  }
+
+  try {
+    const parsed = text.trim().split("\n").map((line, i) => {
+      try {
+        return JSON.parse(line);
+      } catch (e) {
+        console.error(`[loadJSONL] JSON parse error at line ${i}:`, line);
+        throw e;
+      }
+    });
+    console.log(`[loadJSONL] Loaded ${parsed.length} entries from ${path}`);
+    return parsed;
+  } catch (e) {
+    console.error(`[loadJSONL] Error parsing JSONL from ${path}:`, e);
+    throw e;
+  }
 }
+
 
 function BoneLines({ points }) {
   const bones = [
@@ -93,30 +119,46 @@ export default function App() {
 
   useEffect(() => {
     async function loadAnnotations() {
+      try {
       const data = await loadJSONL("/annotations_v2.jsonl");
+      console.log("[loadAnnotations] Loaded", data.length, "annotations");
       setAnnotations(data);
+    } catch (e) {
+      console.error("[loadAnnotations] Failed:", e);
+    }
     }
     loadAnnotations();
   }, []);
+
 
   useEffect(() => {
     async function loadMotion() {
       if (annotations.length === 0) return;
       const selected = annotations[selectedIndex];
+    console.log("[loadMotion] Selected:", selected);
 
-      setAnnotationText(selected.clarify_annotation);
+    setAnnotationText(selected.clarify_annotation);
 
+    const basePath = `/hand_poses/${selected.scene}/keypoints_3d/${selected.sequence}`;
+    const leftPath = `${basePath}/left.jsonl`;
+    const rightPath = `${basePath}/right.jsonl`;
 
-      const basePath = `/hand_poses/${selected.scene}/keypoints_3d/${selected.sequence}`;
-      const leftRaw = await loadJSONL(`${basePath}/left.jsonl`);
-      const rightRaw = await loadJSONL(`${basePath}/right.jsonl`);
+    try {
+      const leftRaw = await loadJSONL(leftPath);
+      const rightRaw = await loadJSONL(rightPath);
+      console.log("[loadMotion] Loaded left:", leftRaw.length, "frames");
+      console.log("[loadMotion] Loaded right:", rightRaw.length, "frames");
 
       setLeftMotion(leftRaw.map(stripW));
       setRightMotion(rightRaw.map(stripW));
+    } catch (e) {
+      console.error("[loadMotion] Failed to load motion files:", e);
     }
+  }
 
-    loadMotion();
-  }, [annotations, selectedIndex]);
+  loadMotion();
+}, [annotations, selectedIndex]);
+
 
   return (
     <div className="canvas-container" style={{ height: "100vh", width: "100vw", position: "relative" }}>
