@@ -1,78 +1,114 @@
-import { OrbitControls } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
-import React, { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
+import { OrbitControls } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import React, { useEffect, useRef, useState } from 'react';
 
-function FrameAnimator({ motion }) {
-    const [frame, setFrame] = useState(0);
+
+
+const MotionViewer = ({ motion }) => {
+    const rootRef = useRef();
+    const jointRefs = useRef([]);
     const frameRef = useRef(0);
-    const timer = useRef(0);
+    const tickCounter = useRef(0);
+    const scale = 1.0;
+    const speed = 4; // Increase this to slow down (e.g. 4 = update every 4 frames)
 
-    useFrame((_, delta) => {
-        if (!motion || motion.length === 0) return;
-        timer.current += delta;
-        if (timer.current > 0.02) {
-            timer.current = 0;
-            frameRef.current = (frameRef.current + 1) % motion.length;
-            setFrame(frameRef.current);
-        }
-    });
+    useFrame(() => {
+        if (!motion || motion.length !== 263 || !motion[0]?.[0]?.length) return;
 
-    if (!motion[frame] || motion[frame].length === 0) return null;
+      tickCounter.current += 1;
+      if (tickCounter.current % speed !== 0) return;
 
+      const totalFrames = motion[0][0].length;
+      const currentIndex = frameRef.current % totalFrames;
+
+      const frame = motion.map(channel => channel[0][currentIndex]); // [263]
+      const rootX = Number(frame[0]) * scale;
+      const rootY = Number(frame[1]) * scale;
+      const rootZ = Number(frame[2]) * scale;
+
+      rootRef.current?.position.set(rootX, rootY, rootZ);
+
+      const ric = frame.slice(9, 69); // 20 joints × 3
+
+      for (let i = 1; i < 20; i++) {
+          const x = Number(ric[i * 3]);
+          const y = Number(ric[i * 3 + 1]);
+          const z = Number(ric[i * 3 + 2]);
+
+          const px = x * scale;
+          const py = y * scale;
+          const pz = z * scale;
+
+          jointRefs.current[i]?.position.set(px, py, pz);
+      }
+
+      frameRef.current += 1;
+  });
+
+    return (
+      <group>
+          {/* Moving Root Joint (red) */}
+          <mesh ref={rootRef}>
+              <sphereGeometry args={[0.05, 16, 16]} />
+              <meshStandardMaterial color="red" />
+              {/* Child Joints */}
+              {Array.from({ length: 19 }).map((_, i) => (
+                  <mesh key={i + 1} ref={(el) => (jointRefs.current[i + 1] = el)}>
+                      <sphereGeometry args={[0.04, 16, 16]} />
+                      <meshStandardMaterial color="orange" />
+                  </mesh>
+              ))}
+          </mesh>
+      </group>
+  );
+};
+
+
+
+
+
+export default function Viewer() {
+    const [motion, setMotion] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        console.log('[INFO] Loading motion data...');
+        fetch('/generated_motion/results.json')
+            .then((res) => res.json())
+            .then((data) => {
+                const raw = data.motion?.[0]; // shape: [263][1][60]
+                console.log('[DEBUG] Loaded motion shape:', raw?.length, raw?.[0]?.[0]?.length);
+                setMotion(raw);
+                setLoading(false);
+            })
+            .catch((err) => {
+                console.error('[ERROR] Failed to load motion data:', err);
+                setLoading(false);
+            });
+    }, []);
 
     return (
         <>
-            {motion[frame].map((joint, i) => (
-                <mesh key={i} position={joint}>
-                    <sphereGeometry args={[0.015, 8, 8]} />
-                    <meshStandardMaterial color="white" />
-                </mesh>
-            ))}
-        </>
-    );
-}
+            {loading && (
+                <div style={{ position: 'absolute', top: 10, left: 10, color: 'white' }}>
+                    Loading motion...
+                </div>
+            )}
+            {!loading && motion && (
+                <div style={{ position: 'absolute', top: 10, left: 10, color: 'white' }}>
+                    Playing RIC motion
+                </div>
+            )}
 
-export default function Viewer() {
-    const [motions, setMotions] = useState([]);
-
-    useEffect(() => {
-        async function fetchMotion() {
-            try {
-                const res = await fetch("/results.json");
-                const json = await res.json();
-                console.log("[LOADED] Results JSON", json);
-
-                const motions = json.motion.map((seq, sIdx) => {
-                    return seq.map((frame, fIdx) => {
-                        if (!Array.isArray(frame) || frame.length < 21) {
-                            console.warn(`[SKIP] Frame ${fIdx} in sample ${sIdx} has ${frame.length} joints`);
-                            return null;
-                        }
-                        return frame.map(([x, y, z]) => new THREE.Vector3(x, y, z));
-                    }).filter(f => f); // filter out invalid frames
-                });
-
-                console.log("[INFO] Parsed", motions.length, "valid samples");
-                console.log("[INFO] First frame joint 0 pos:", motions[0]?.[0]?.[0]);
-
-                setMotions(motions);
-            } catch (err) {
-                console.error("[ERROR] Loading or parsing motion data", err);
-            }
-        }
-
-        fetchMotion();
-    }, []);
-
-
-    return (
-        <Canvas camera={{ position: [0, 1, 3] }} style={{ height: "100vh", background: "#1e1e2f" }}>
-            <OrbitControls />
-            <primitive object={new THREE.AxesHelper(0.5)} />
-            <ambientLight />
-            <directionalLight position={[1, 1, 1]} />
-            {motions[0] && <FrameAnimator motion={motions[0]} />}
+            <div style={{ width: '100vw', height: '100vh' }}>
+                <Canvas camera={{ position: [0, 0.5, 3], fov: 50 }}>
+                    <ambientLight />
+                    <pointLight position={[10, 10, 10]} />
+                    {motion && <MotionViewer motion={motion} />}
+                    <axesHelper args={[1]} />
+                    <OrbitControls />
         </Canvas>
+            </div>
+        </>
     );
 }
