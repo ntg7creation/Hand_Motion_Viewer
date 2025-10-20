@@ -101,9 +101,8 @@ export default function App_dual_126() {
     const [frames, setFrames] = useState([]);
     const [fps, setFps] = useState(20);
     const [paused, setPaused] = useState(false);
-
     useEffect(() => {
-        loadJSONL("/gigahands_dual/massage.jsonl")
+        loadJSONL("/gigahands_concat/identity.jsonl")
             .then(rawFrames => {
                 const parsed = rawFrames.map(extractHands);
                 setFrames(parsed);
