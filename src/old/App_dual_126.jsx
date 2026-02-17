@@ -1,8 +1,55 @@
-// App_dual_126.jsx
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+
+// === Config =====================================================
+
+// const FOLDER = "/gigahands_long_diez_blind";
+
+// const FILE_LIST = [
+//     "00_p002-dog_008_text_1_Toss_a_different_toy_into_the_play_area_for_the_puppy_to_chase_.jsonl",
+//     "00_p002-dog_008_text_2_Fling_another_toy_into_the_play_zone_for_the_puppy_to_go_after.jsonl",
+//     "01_p027-packing_010_text_1_Grasp_the_stain_removing_pen_securely_in_your_hand.jsonl",
+//     "01_p027-packing_010_text_2_Clutch_the_stain_removing_pen_tightly_in_your_hand.jsonl",
+// ];
+const FOLDER = "/old/infer_trainset_blind_100";
+
+// 🧩 Place your .jsonl filenames here:
+const FILE_LIST = [
+    "00_p007-salad_041_text_Toss_the_salad_in_the_bowl_to_coat_all_the_salad_ingredients_thoroughly_with_the_dressing.jsonl",
+    "01_p014-tool_012_text_Drill_the_screw_into_the_hole_in_the_wood.jsonl",
+    "02_p042-firstaid_019_text_Grip_the_gauze_swab_with_the_tweezer_to_prepare_for_further_cleaning.jsonl",
+    "03_p035-instrument_087_text_Strum_the_strings_of_the_harp_with_your_fingers_or_a_pick_to_produce_a_continuous_sound.jsonl",
+    "04_p005-instrument-makeup-dog-packing-massage-firstaid-cleaning-tool_094_text_Decrescendo_by_gradually_decreasing_the_volume_of_your_plucking_on_the_strings.jsonl",
+    "05_p048-sandwich_021_text_Detach_the_fork_from_the_last_slice_of_spam_on_the_cutting_board.jsonl",
+    "06_p042-noodle_027_text_Slide_the_chopsticks_out_of_the_opened_wrapper_using_your_fingers.jsonl",
+    "07_p017-phone_006_text_Double_click_the_lock_button_on_the_phone_to_open_the_Apple_Wallet.jsonl",
+    "08_p040-monopoly_051_text_Stack_one_three-card_pile_on_top_of_the_other_three-card_pile_of_the_deck.jsonl",
+    "09_p042-tea_006_text_Pick_up_the_tea_bag_box_from_the_table.jsonl",
+    "10_p019-makeup_005_text_Spread_the_serum_evenly_over_your_face_using_gentle_upward_strokes_with_your_fingertips.jsonl",
+    "11_p038-stone_022_text_Polish_the_surface_of_the_stone_with_the_sandpaper_in_your_hand.jsonl",
+    "12_p005-instrument-makeup-dog-packing-massage-firstaid-cleaning-tool_317_text_Grip_the_gauze_swab_with_the_newly_taken_tweezer_from_the_kit.jsonl",
+    "13_p034-monopoly_052_text_Draw_a_card_from_the_main_deck_on_the_table_to_add_to_your_hand.jsonl",
+    "14_p007-laptop_007_text_Adjust_the_angle_of_the_laptop_screen_for_better_viewing.jsonl",
+    "15_p018-present_003_text_Peel_the_tape_off_the_wrapping_paper_of_the_gift_by_lifting_one_corner_and_pulling_gently_to_avoid_t.jsonl",
+    "16_p005-instrument-makeup-dog-packing-massage-firstaid-cleaning-tool_274_text_Extend_your_right_arm_forward_in_front_of_you.jsonl",
+    "17_p042-instrument_053_text_Put_down_the_Otamatone_on_a_stable_surface.jsonl",
+    "18_p007-tablet-gopro_069_text_Tap_the__text__icon_on_the_screen_to_prepare_for_entering_text.jsonl",
+    "19_p034-monopoly_053_text_Play_a_card_from_your_hand_by_placing_it_face-up_next_to_the_main_deck.jsonl",
+];
+
+// const FOLDER = "/gigahandsfull";
+
+// // 🧩 Place your .jsonl filenames here:
+// const FILE_LIST = [
+//     "massage_your_hands.jsonl",
+//     "Mop_the_table_surface_using_a_damp_cloth_or_mop_to_clean_it.jsonl",
+//     "Play_a_piece_of_music_on_the_ukulele.jsonl",
+//     "Rinse_off_the_dog's_shampoo_from_the_puppy's_fur_with_water_using_the_showerhead.jsonl",
+//     "SLAM_THE_CAN.jsonl",
+// ];
+// ================================================================
 
 async function loadJSONL(path) {
     const res = await fetch(path);
@@ -11,10 +58,7 @@ async function loadJSONL(path) {
     return text.trim().split("\n").map(line => JSON.parse(line));
 }
 
-// --- Helpers ---------------------------------------------------------------
-
 function extractHands(frame) {
-    // frame: [[x,y,z], ... 42 entries]
     const left = frame.slice(0, 21).map(([x, y, z]) => [x, y, z]);
     const right = frame.slice(21, 42).map(([x, y, z]) => [x, y, z]);
     return { left, right };
@@ -37,11 +81,11 @@ const JOINT_COLORS_RIGHT = [
 ];
 
 const BONES = [
-    [0, 1], [1, 2], [2, 3], [3, 4],        // Thumb
-    [0, 5], [5, 6], [6, 7], [7, 8],        // Index
-    [0, 9], [9, 10], [10, 11], [11, 12],   // Middle
-    [0, 13], [13, 14], [14, 15], [15, 16], // Ring
-    [0, 17], [17, 18], [18, 19], [19, 20]  // Pinky
+    [0, 1], [1, 2], [2, 3], [3, 4],
+    [0, 5], [5, 6], [6, 7], [7, 8],
+    [0, 9], [9, 10], [10, 11], [11, 12],
+    [0, 13], [13, 14], [14, 15], [15, 16],
+    [0, 17], [17, 18], [18, 19], [19, 20],
 ];
 
 function DotCloud({ points, colors }) {
@@ -64,8 +108,6 @@ function BoneLines({ points, color = "white" }) {
         return <line key={i} geometry={geometry} material={material} />;
     });
 }
-
-// --- Animator --------------------------------------------------------------
 
 function FrameAnimator({ frames, fps, paused = false }) {
     const [index, setIndex] = useState(0);
@@ -95,23 +137,23 @@ function FrameAnimator({ frames, fps, paused = false }) {
     );
 }
 
-// --- Main component --------------------------------------------------------
-
 export default function App_dual_126() {
     const [frames, setFrames] = useState([]);
     const [fps, setFps] = useState(20);
     const [paused, setPaused] = useState(false);
+    const [selectedFile, setSelectedFile] = useState("");
+
     useEffect(() => {
-        loadJSONL("/gigahands_concat/identity.jsonl")
+        if (!selectedFile) return;
+        const path = `${FOLDER}/${selectedFile}`;
+        loadJSONL(path)
             .then(rawFrames => {
                 const parsed = rawFrames.map(extractHands);
                 setFrames(parsed);
                 console.log("✔ Loaded dual-hand frames:", rawFrames.length);
             })
             .catch(console.error);
-    }, []);
-
-    const haveFrames = frames.length > 0;
+    }, [selectedFile]);
 
     return (
         <>
@@ -120,16 +162,28 @@ export default function App_dual_126() {
                 <directionalLight position={[1, 2, 1]} intensity={1} />
                 <primitive object={new THREE.AxesHelper(1)} />
                 <OrbitControls />
-                {haveFrames && <FrameAnimator frames={frames} fps={fps} paused={paused} />}
+                {frames.length > 0 && <FrameAnimator frames={frames} fps={fps} paused={paused} />}
             </Canvas>
 
-            {/* UI */}
             <div style={{
                 position: "absolute", top: 10, left: 10, color: "white",
                 background: "rgba(0,0,0,0.6)", padding: 12, borderRadius: 8
             }}>
                 <div style={{ fontWeight: "bold" }}>App_dual_126 Viewer</div>
-                <div>Showing 2 hands (21 joints each)</div>
+
+                <label style={{ display: "block", marginTop: 10 }}>
+                    File:&nbsp;
+                    <select
+                        value={selectedFile}
+                        onChange={e => setSelectedFile(e.target.value)}
+                        style={{ padding: 4, borderRadius: 4 }}
+                    >
+                        <option value="">Select a motion...</option>
+                        {FILE_LIST.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                        ))}
+                    </select>
+                </label>
 
                 <button
                     onClick={() => setPaused(p => !p)}

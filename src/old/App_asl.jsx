@@ -3,7 +3,7 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { loadGigaHandsJSONL } from "./utils/loadGigaHands";
+import { loadGigaHandsJSONL } from "../utils/loadGigaHands";
 
 async function loadJSONL(path) {
   const res = await fetch(path);

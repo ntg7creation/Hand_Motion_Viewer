@@ -30,13 +30,35 @@ import "./styles.css";
 // );
 
 /* ----------------- visual for our model inference dual hand 126 results  ----------------- */
-import App_dual_126 from "./App_dual_126.jsx";
+// import App_dual_126 from "./App_dual_126.jsx";
+// ReactDOM.createRoot(document.getElementById("root")).render(
+//     <React.StrictMode>
+//         <App_dual_126 />
+//     </React.StrictMode>
+// );
+
+/* ----------------- visual for our model inference dual hand infrence from a file train set  ----------------- */
+// import App_render_infrance from "./App_render_file.jsx";
+// ReactDOM.createRoot(document.getElementById("root")).render(
+//     <React.StrictMode>
+//         <App_render_infrance />
+//     </React.StrictMode>
+// );
+
+// render for velocity set
+// import App_render_infer_3sets from "./App_render_infer_3sets.jsx";
+// ReactDOM.createRoot(document.getElementById("root")).render(
+//     <React.StrictMode>
+//         <App_render_infer_3sets />
+//     </React.StrictMode>
+// );
+
+import Modular_Scene from "./Modular_Scene.jsx";
 ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
-        <App_dual_126 />
+        <Modular_Scene />
     </React.StrictMode>
 );
-
 
 // import Viewer from "./viewer.jsx"; // Or the correct path
 

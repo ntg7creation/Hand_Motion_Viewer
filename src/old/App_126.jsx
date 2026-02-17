@@ -1,7 +1,7 @@
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import React, { useEffect, useRef, useState } from "react";
-import { loadGigaHandsJSONL } from "./utils/loadGigaHands";
+import { loadGigaHandsJSONL } from "../utils/loadGigaHands";
 
 import * as THREE from "three";
 

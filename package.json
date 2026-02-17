@@ -12,6 +12,7 @@
   "dependencies": {
     "@react-three/drei": "^10.3.0",
     "@react-three/fiber": "^9.1.2",
+    "lil-gui": "^0.21.0",
     "npyjs": "^0.7.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
